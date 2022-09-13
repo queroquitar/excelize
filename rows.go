@@ -497,6 +497,10 @@ func (c *xlsxC) getValueFrom(f *File, d *xlsxSST, raw bool) (string, error) {
 	}
 }
 
+func (c *xlsxC) GetValueFrom(f *File, d *xlsxSST, raw bool) (string, error) {
+	return c.getValueFrom(f, d, raw)
+}
+
 // roundPrecision provides a function to format floating-point number text
 // with precision, if the given text couldn't be parsed to float, this will
 // return the original string.

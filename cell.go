@@ -1117,6 +1117,7 @@ func (f *File) prepareCell(ws *xlsxWorksheet, cell string) (*xlsxC, int, int, er
 
 // getCellStringFunc does common value extraction workflow for all GetCell*
 // methods. Passed function implements specific part of required logic.
+
 func (f *File) getCellStringFunc(sheet, axis string, fn func(x *xlsxWorksheet, c *xlsxC) (string, bool, error)) (string, error) {
 	ws, err := f.workSheetReader(sheet)
 	if err != nil {
@@ -1164,6 +1165,49 @@ func (f *File) getCellStringFunc(sheet, axis string, fn func(x *xlsxWorksheet, c
 		}
 	}
 	return "", nil
+}
+
+func (f *File) GetCell(sheet, axis string) (interface{}, error) {
+	ws, err := f.workSheetReader(sheet)
+	if err != nil {
+		return nil, err
+	}
+	axis, err = f.mergeCellsParser(ws, axis)
+	if err != nil {
+		return nil, err
+	}
+	_, row, err := CellNameToCoordinates(axis)
+	if err != nil {
+		return nil, err
+	}
+
+	ws.Lock()
+	defer ws.Unlock()
+
+	lastRowNum := 0
+	if l := len(ws.SheetData.Row); l > 0 {
+		lastRowNum = ws.SheetData.Row[l-1].R
+	}
+
+	// keep in mind: row starts from 1
+	if row > lastRowNum {
+		return nil, nil
+	}
+
+	for rowIdx := range ws.SheetData.Row {
+		rowData := &ws.SheetData.Row[rowIdx]
+		if rowData.R != row {
+			continue
+		}
+		for colIdx := range rowData.C {
+			colData := &rowData.C[colIdx]
+			if axis != colData.R {
+				continue
+			}
+			return colData.getValueFrom(f, f.sharedStringsReader(), true)
+		}
+	}
+	return nil, nil
 }
 
 // formattedValue provides a function to returns a value after formatted. If
